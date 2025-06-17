@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>📝 Daily Task Table with Edit</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #fefefe;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    input {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    input[type="text"] {
+      width: 40%;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ccc;
+      text-align: center;
+    }
+    .done {
+      text-decoration: line-through;
+      color: #888;
+    }
+    .done-btn {
+      background-color: #2196F3;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .done-btn:hover {
+      background-color: #0b7dda;
+    }
+    .delete-btn {
+      background-color: #ff4d4d;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .delete-btn:hover {
+      background-color: #e60000;
+    }
+    .edit-btn {
+      background-color: #ffa500;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+    .edit-btn:hover {
+      background-color: #cc8400;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗓️ Daily Task Table with Edit</h1>
+    <input type="text" id="taskInput" placeholder="Task..." />
+    <input type="text" id="dayInput" placeholder="Day (e.g., Monday)" />
+    <table>
+      <thead>
+        <tr>
+          <th>Task</th>
+          <th>Day</th>
+          <th>Done</th>
+          <th>Delete</th>
+          <th>Edit</th>
+        </tr>
+      </thead>
+      <tbody id="taskTableBody">
+        <!-- Tasks appear here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    function displayTasks() {
+      const table = document.getElementById("taskTableBody");
+      table.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const row = document.createElement("tr");
+
+        const taskCell = document.createElement("td");
+        const dayCell = document.createElement("td");
+        const doneCell = document.createElement("td");
+        const deleteCell = document.createElement("td");
+        const editCell = document.createElement("td");
+
+        if (task.editing) {
+          // Editing mode: show inputs
+          const taskInput = document.createElement("input");
+          taskInput.type = "text";
+          taskInput.value = task.text;
+          taskInput.style.width = "90%";
+
+          const dayInput = document.createElement("input");
+          dayInput.type = "text";
+          dayInput.value = task.day;
+          dayInput.style.width = "90%";
+
+          taskCell.appendChild(taskInput);
+          dayCell.appendChild(dayInput);
+
+          const saveBtn = document.createElement("button");
+          saveBtn.textContent = "Save";
+          saveBtn.className = "edit-btn";
+          saveBtn.onclick = () => {
+            const newText = taskInput.value.trim();
+            const newDay = dayInput.value.trim();
+            if (newText && newDay) {
+              tasks[index].text = newText;
+              tasks[index].day = newDay;
+              tasks[index].editing = false;
+              localStorage.setItem("tasks", JSON.stringify(tasks));
+              displayTasks();
+            } else {
+              alert("Both task and day must be filled!");
+            }
+          };
+          editCell.appendChild(saveBtn);
+
+          // Optional: cancel editing on Escape
+          [taskInput, dayInput].forEach(input => {
+            input.addEventListener("keydown", (e) => {
+              if (e.key === "Escape") {
+                tasks[index].editing = false;
+                displayTasks();
+              }
+            });
+          });
+        } else {
+          // Normal mode: show text
+          taskCell.textContent = task.text;
+          if (task.done) taskCell.className = "done";
+
+          dayCell.textContent = task.day;
+
+          const doneBtn = document.createElement("button");
+          doneBtn.textContent = task.done ? "Undo" : "Done";
+          doneBtn.className = "done-btn";
+          doneBtn.onclick = () => toggleDone(index);
+          doneCell.appendChild(doneBtn);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "Delete";
+          deleteBtn.className = "delete-btn";
+          deleteBtn.onclick = () => deleteTask(index);
+          deleteCell.appendChild(deleteBtn);
+
+          const editBtn = document.createElement("button");
+          editBtn.textContent = "Edit";
+          editBtn.className = "edit-btn";
+          editBtn.onclick = () => {
+            tasks[index].editing = true;
+            displayTasks();
+          };
+          editCell.appendChild(editBtn);
+        }
+
+        row.appendChild(taskCell);
+        row.appendChild(dayCell);
+        row.appendChild(doneCell);
+        row.appendChild(deleteCell);
+        row.appendChild(editCell);
+
+        table.appendChild(row);
+      });
+    }
+
+    function addTask() {
+      const taskInput = document.getElementById("taskInput");
+      const dayInput = document.getElementById("dayInput");
+      const text = taskInput.value.trim();
+      const day = dayInput.value.trim();
+
+      if (text && day) {
+        tasks.push({ text, day, done: false, editing: false });
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+        taskInput.value = "";
+        displayTasks();
+      }
+    }
+
+    function toggleDone(index) {
+      tasks[index].done = !tasks[index].done;
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      displayTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      displayTasks();
+    }
+
+    document.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        addTask();
+      }
+    });
+
+    displayTasks();
+  </script>
+</body>
+</html>
